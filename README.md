@@ -1,0 +1,19 @@
+# TODO List learning project
+
+- Learning about Python, FastAPI and the common tools used in the ecosystem
+
+- [] Setup a db (Sqlite)
+- [] Add basic configuration for the project
+- [] Understand the basic structure of a python project
+
+## Installation
+
+```bash
+uv sync
+```
+
+## Usage
+
+```bash
+uv run python ./src/main.py
+```
