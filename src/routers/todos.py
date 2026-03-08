@@ -4,22 +4,14 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends, Path
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from dto import CreateTodoDTO, UpdateTodoDTO
-from models import Todo
+from database.db import get_db
+from dtos.todos import CreateTodoDTO, UpdateTodoDTO
+from models.todos import Todo
 
 router = APIRouter(
     prefix="/todos",
     tags=["todos"],
 )
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 db_dependency = Annotated[Session, Depends(get_db)]
