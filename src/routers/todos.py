@@ -4,9 +4,10 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.params import Depends, Path
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from dto import CreateTodoDTO, UpdateTodoDTO
-from models import Todo
+from database.db import get_db
+from dtos.todos import CreateTodoDTO, UpdateTodoDTO
+from models.todos import Todo
+from services.auth import get_current_user
 
 router = APIRouter(
     prefix="/todos",
@@ -14,15 +15,8 @@ router = APIRouter(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
@@ -32,10 +26,11 @@ async def get_all_todos(db: db_dependency):
 
 @router.get("/{todo_id}", status_code=status.HTTP_200_OK)
 async def get_todo(
+    user: user_dependency,
     db: db_dependency,
     todo_id: int = Path(gt=0),
 ):
-    todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user["id"]).first()
 
     if not todo:
         raise HTTPException(
@@ -46,8 +41,8 @@ async def get_todo(
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_todo(db: db_dependency, todo: CreateTodoDTO):
-    todo_model = Todo(**todo.model_dump())
+async def create_todo(user: user_dependency, db: db_dependency, todo: CreateTodoDTO):
+    todo_model = Todo(**todo.model_dump(), user_id=user["id"])
 
     db.add(todo_model)
     db.commit()
@@ -57,11 +52,14 @@ async def create_todo(db: db_dependency, todo: CreateTodoDTO):
 
 @router.patch("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_todo(
+    user: user_dependency,
     db: db_dependency,
     update_todo: UpdateTodoDTO = None,
     todo_id: int = Path(gt=0),
 ):
-    existing_todo = db.query(Todo).filter(Todo.id == todo_id).first()
+    existing_todo = (
+        db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user["id"]).first()
+    )
 
     if not existing_todo:
         raise HTTPException(
@@ -76,10 +74,13 @@ async def update_todo(
 
 @router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_todo(
+    user: user_dependency,
     db: db_dependency,
     todo_id: int = Path(gt=0),
 ):
-    rows_deleted = db.query(Todo).filter(Todo.id == todo_id).delete()
+    rows_deleted = (
+        db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user["id"]).delete()
+    )
 
     if rows_deleted == 0:
         raise HTTPException(
