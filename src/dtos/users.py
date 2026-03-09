@@ -21,16 +21,3 @@ class CreateUserDTO(BaseModel):
             }
         }
     }
-
-class LoginUserDTO(BaseModel):
-    email: str
-    password: str
-
-    model_config = {
-        "json_schema_extra": {
-            "example": {
-                "email": "test@test.com",
-                "password": "password123",
-            }
-        }
-    }
